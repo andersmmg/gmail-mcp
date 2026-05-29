@@ -7,7 +7,7 @@ import { z } from "zod"
 import { google, gmail_v1 } from 'googleapis'
 import fs from "fs"
 import { createOAuth2Client, launchAuthServer, validateCredentials } from "./oauth2.js"
-import { MCP_CONFIG_DIR, PORT, TELEMETRY_ENABLED } from "./config.js"
+import { MCP_CONFIG_DIR, PORT, TELEMETRY_ENABLED, TRANSPORT } from "./config.js"
 import { instrumentServer } from "@shinzolabs/instrumentation-mcp"
 
 type Draft = gmail_v1.Schema$Draft
@@ -1349,14 +1349,24 @@ const main = async () => {
     process.exit(0)
   }
 
-  // Stdio Server
-  const stdioServer = createServer({})
-  const transport = new StdioServerTransport()
-  await stdioServer.connect(transport)
+  const transportMode = TRANSPORT
+  const log = console.error
 
-  // Streamable HTTP Server
-  const { app } = createStatefulServer(createServer)
-  app.listen(PORT)
+  log(`[gmail-mcp] Starting with transport mode: ${transportMode}`)
+
+  if (transportMode === 'stdio' || transportMode === 'both') {
+    const stdioServer = createServer({})
+    const transport = new StdioServerTransport()
+    await stdioServer.connect(transport)
+    log(`[gmail-mcp] Stdio transport ready`)
+  }
+
+  if (transportMode === 'http' || transportMode === 'both') {
+    const { app } = createStatefulServer(createServer)
+    app.listen(PORT, () => {
+      log(`[gmail-mcp] HTTP transport listening on port ${PORT}`)
+    })
+  }
 }
 
 main()

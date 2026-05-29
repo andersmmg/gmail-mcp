@@ -67,9 +67,11 @@ export const launchAuthServer = async (oauth2Client: OAuth2Client) => new Promis
 
   const authUrl = oauth2Client.generateAuthUrl({ access_type: 'offline', scope: AUTH_SCOPES })
 
-  console.log(`Please visit this URL to authenticate: ${authUrl}`)
+  console.log(`\nPlease visit this URL in your browser to authenticate:\n${authUrl}\n`)
 
-  open(authUrl)
+  open(authUrl).catch(() => {
+    // open may fail on headless/remote servers, URL is printed above
+  })
 
   server.on('request', async (req, res) => {
     if (!req.url?.startsWith('/oauth2callback')) return
